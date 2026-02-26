@@ -1,612 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Fretboard Master Pro</title>
-	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fretboard Master Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        :root {
+            --bg: #0a0a0c; --panel: #16161e; --accent: #3d5aff;
+            --root-color: #00ffa3; --target-color: #ff4d4d;
+            --text: #ffffff; --text-dim: #9499b8;
+            --wood: #2b180d; --fret-metal: #777;
+        }
+        
+        * { box-sizing: border-box; touch-action: manipulation; }
+        html, body { overflow-x: hidden; width: 100%; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        
+        #app-container { width: 100%; max-width: 950px; background: var(--panel); padding: 15px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .stats { font-size: 1.5rem; font-weight: 800; color: #ffcc00; }
+        
+        .config-bar { display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        .config-group { display: flex; align-items: center; gap: 4px; }
+        .config-group label { font-size: 0.55rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; }
+        
+        .input-pair { display: flex; gap: 4px; background: #000; padding: 4px 8px; border-radius: 8px; border: 1px solid #333; align-items: center; }
+        input { width: 36px; background: transparent; border: none; color: white; font-size: 0.85rem; text-align: center; outline: none; font-weight: 600; }
+        
+        .degree-container { flex-grow: 1; display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px; min-width: 200px; }
+        .circle-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+        .circle-btn { width: 28px; height: 28px; border-radius: 50%; background: #222; border: 1px solid #444; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .circle-btn.active { background: var(--accent); border-color: var(--accent); }
 
-		:root {
-			--bg: #0a0a0c;
-			--panel: #16161e;
-			--accent: #3d5aff;
-			--root-color: #00ffa3;
-			--target-color: #ff4d4d;
-			--text: #ffffff;
-			--text-dim: #9499b8;
-			--wood: #2b180d;
-			--fret-metal: #c2a373;
-		}
+        .fretboard-container { 
+            background: #000; border-radius: 16px; 
+            padding: 25px 0; 
+            margin-bottom: 15px; 
+            width: 100%; position: relative;
+        }
+        
+        .fretboard { 
+            position: relative; 
+            width: 100%; 
+            aspect-ratio: 3.5 / 1; 
+            background: linear-gradient(90deg, #2b180d, #1a0f08); 
+            /* Nut shrinks on mobile */
+            border-left: clamp(3px, 1vw, 8px) solid #eee; 
+            display: flex; flex-direction: column;
+        }
+        
+        .string-row { display: flex; flex: 1; position: relative; z-index: 10; width: 100%; }
+        /* FLUID STRING THICKNESS */
+        .string-row::after { 
+            content: ""; position: absolute; left: 0; right: 0; top: 50%; 
+            height: clamp(0.5px, 0.2vw, 2px); 
+            background: linear-gradient(180deg, #555, #ccc, #555); 
+            transform: translateY(-50%); z-index: 5; pointer-events: none; 
+        }
+        
+        /* FLUID FRET THICKNESS */
+        .fret-cell { 
+            flex: 1; 
+            border-right: clamp(1px, 0.3vw, 3px) solid var(--fret-metal); 
+            display: flex; justify-content: center; align-items: center; position: relative; 
+        }
+        
+        /* LARGER DOTS ON SMALL SCREENS */
+        .dot { 
+            width: clamp(18%, 2.5vw, 22%); 
+            aspect-ratio: 1/1;
+            background: #fff; 
+            border-radius: 50%; display: none; position: absolute; 
+            box-shadow: 0 0 clamp(6px, 1.5vw, 12px) rgba(255,255,255,0.9);
+            z-index: 2;
+        }
 
-		body {
-			font-family: 'Plus Jakarta Sans', sans-serif;
-			background: var(--bg);
-			color: var(--text);
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			margin: 0;
-			padding: 10px;
-		}
+        .note { 
+            width: clamp(14px, 4.5vw, 30px); 
+            height: clamp(14px, 4.5vw, 30px); 
+            border-radius: 50%; z-index: 20; 
+            font-size: clamp(8px, 2vw, 14px); 
+            font-weight: 900; color: #000; 
+            border: clamp(1.5px, 0.4vw, 3px) solid white; 
+            position: absolute;
+            display: none; align-items: center; justify-content: center; 
+        }
+        .note.visible { display: flex; }
+        .note.root { background: var(--root-color); box-shadow: 0 0 10px var(--root-color); }
+        .note.target { background: var(--target-color); color: white; box-shadow: 0 0 10px var(--target-color); }
 
-		#app-container {
-			width: 100%;
-			max-width: 950px;
-			background: var(--panel);
-			padding: 20px;
-			border-radius: 24px;
-			border: 1px solid rgba(255, 255, 255, 0.05);
-			box-sizing: border-box;
-		}
+        .marker-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; pointer-events: none; z-index: 1; }
+        .marker-col { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        .has-dot .dot-1 { display: block; top: 50%; transform: translateY(-50%); }
+        .has-double .dot-1 { display: block; top: 25%; transform: translateY(-50%); }
+        .has-double .dot-2 { display: block; top: 75%; transform: translateY(-50%); }
 
-		.header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			margin-bottom: 15px;
-		}
-
-		.stats {
-			font-size: 2rem;
-			font-weight: 800;
-			color: #ffcc00;
-		}
-
-		.config-bar {
-			display: flex;
-			gap: 12px;
-			background: rgba(255, 255, 255, 0.03);
-			padding: 12px;
-			border-radius: 16px;
-			border: 1px solid rgba(255, 255, 255, 0.05);
-			margin-bottom: 15px;
-			align-items: center;
-			flex-wrap: wrap;
-		}
-
-		.config-group {
-			display: flex;
-			align-items: center;
-			gap: 6px;
-		}
-
-		.config-group label {
-			font-size: 0.55rem;
-			font-weight: 800;
-			color: var(--text-dim);
-			text-transform: uppercase;
-			white-space: nowrap;
-		}
-
-		.input-pair {
-			display: flex;
-			gap: 4px;
-			background: #000;
-			padding: 4px 8px;
-			border-radius: 8px;
-			border: 1px solid #333;
-			align-items: center;
-		}
-
-		input {
-			width: 32px;
-			background: transparent;
-			border: none;
-			color: white;
-			font-size: 0.8rem;
-			text-align: center;
-			outline: none;
-			font-weight: 600;
-		}
-
-		input::-webkit-inner-spin-button {
-			-webkit-appearance: none;
-		}
-
-		.degree-container {
-			flex-grow: 1;
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			border-left: 1px solid rgba(255, 255, 255, 0.1);
-			padding-left: 15px;
-		}
-
-		.circle-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 6px;
-		}
-
-		.circle-btn {
-			width: 30px;
-			height: 30px;
-			border-radius: 50%;
-			background: #222;
-			border: 1px solid #444;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 0.65rem;
-			font-weight: 700;
-			cursor: pointer;
-			transition: 0.2s;
-			user-select: none;
-		}
-
-		.circle-btn.active {
-			background: var(--accent);
-			border-color: var(--accent);
-			box-shadow: 0 0 10px rgba(61, 90, 255, 0.4);
-		}
-
-		.fretboard-container {
-			background: #000;
-			border-radius: 16px;
-			padding: 25px 0;
-			margin-bottom: 15px;
-			position: relative;
-			width: 100%;
-			overflow: hidden;
-		}
-
-		.fretboard {
-			position: relative;
-			width: 100%;
-			height: 180px;
-			background: linear-gradient(90deg, #2b180d, #1a0f08);
-			border-left: 8px solid #eee;
-			box-sizing: border-box;
-		}
-
-		.string-row {
-			display: flex;
-			height: 30px;
-			position: relative;
-			z-index: 10;
-			width: 100%;
-		}
-
-		.string-row::after {
-			content: "";
-			position: absolute;
-			left: 0;
-			right: 0;
-			top: 50%;
-			height: 1.5px;
-			background: linear-gradient(180deg, #666, #ccc, #666);
-			transform: translateY(-50%);
-			z-index: 5;
-			pointer-events: none;
-		}
-
-		.fret-cell {
-			flex: 1;
-			border-right: 1.5px solid var(--fret-metal);
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			position: relative;
-			height: 100%;
-		}
-
-		.note {
-			width: 24px;
-			height: 24px;
-			border-radius: 50%;
-			display: none;
-			z-index: 20;
-			font-size: 10px;
-			font-weight: 800;
-			color: #000;
-			text-align: center;
-			line-height: 24px;
-			border: 2px solid white;
-			position: absolute;
-		}
-
-		.note.visible {
-			display: block;
-		}
-
-		.note.root {
-			background: var(--root-color);
-			box-shadow: 0 0 15px var(--root-color);
-		}
-
-		.note.target {
-			background: var(--target-color);
-			color: white;
-			box-shadow: 0 0 15px var(--target-color);
-		}
-
-		.marker-overlay {
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			display: flex;
-			pointer-events: none;
-			z-index: 1;
-		}
-
-		.marker-col {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			position: relative;
-		}
-
-		.dot {
-			width: 10px;
-			height: 10px;
-			background: rgba(255, 255, 255, 0.5);
-			border-radius: 50%;
-			display: none;
-			position: absolute;
-		}
-
-		.has-dot .dot-1 {
-			display: block;
-			top: 50%;
-			transform: translateY(-50%);
-		}
-
-		.has-double .dot-1 {
-			display: block;
-			top: 25%;
-			transform: translateY(-50%);
-		}
-
-		.has-double .dot-2 {
-			display: block;
-			top: 75%;
-			transform: translateY(-50%);
-		}
-
-		.start-btn {
-			width: 100%;
-			padding: 14px;
-			border: none;
-			border-radius: 12px;
-			background: var(--accent);
-			color: white;
-			font-weight: 800;
-			cursor: pointer;
-			transition: 0.2s;
-			margin-bottom: 15px;
-			font-size: 0.9rem;
-			letter-spacing: 1px;
-		}
-
-		.answer-grid {
-			display: flex;
-			justify-content: center;
-			gap: 10px;
-			margin-top: 10px;
-			flex-wrap: wrap;
-			min-height: 50px;
-		}
-
-		.ans-btn {
-			width: 48px;
-			height: 48px;
-			border-radius: 50%;
-			background: #222;
-			border: 2px solid #444;
-			color: white;
-			font-weight: 800;
-			cursor: pointer;
-			transition: 0.2s;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.toast {
-			position: fixed;
-			bottom: 30px;
-			left: 50%;
-			transform: translateX(-50%) translateY(100px);
-			padding: 12px 24px;
-			border-radius: 12px;
-			font-weight: 600;
-			transition: 0.3s;
-			z-index: 1000;
-			color: white;
-			pointer-events: none;
-		}
-
-		.toast.show {
-			transform: translateX(-50%) translateY(0);
-		}
-	</style>
+        .start-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--accent); color: white; font-weight: 800; cursor: pointer; margin-bottom: 15px; font-size: 0.85rem; }
+        .answer-grid { display: flex; justify-content: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .ans-btn { width: 48px; height: 48px; border-radius: 50%; background: #222; border: 2px solid #444; color: white; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 12px 24px; border-radius: 12px; font-weight: 600; transition: 0.3s; z-index: 1000; color: white; pointer-events: none;}
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
 </head>
-
 <body>
-	<div id="toast" class="toast"></div>
-	<div id="app-container">
-		<div class="header">
-			<h1 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">FRETBOARD<span style="color:var(--accent)">.IO</span></h1>
-			<div id="timer" class="stats">60</div>
-		</div>
+    <div id="toast" class="toast"></div>
+    <div id="app-container">
+        <div class="header">
+            <h1 style="margin:0; letter-spacing: 1px; font-size: 1.1rem;">FRETBOARD<span style="color:var(--accent)">.IO</span></h1>
+            <div id="timer" class="stats">60</div>
+        </div>
 
-		<div class="config-bar">
-			<div class="config-group">
-				<label>Range</label>
-				<div class="input-pair">
-					<input type="number" id="fLow" value="1" onchange="saveSettings()">
-					<span>-</span>
-					<input type="number" id="fHigh" value="12" onchange="saveSettings()">
-				</div>
-			</div>
-			<div class="config-group">
-				<label>Reach</label>
-				<div class="input-pair">
-					<input type="number" id="fReach" value="4" onchange="saveSettings()">
-					<span>/</span>
-					<input type="number" id="sReach" value="2" onchange="saveSettings()">
-				</div>
-			</div>
-			<div class="config-group">
-				<label>Secs</label>
-				<div class="input-pair">
-					<input type="number" id="sessionTime" value="60" onchange="saveSettings()">
-				</div>
-			</div>
-			<div class="degree-container">
-				<label>Degrees</label>
-				<div class="circle-grid" id="chip-container"></div>
-			</div>
-		</div>
+        <div class="config-bar">
+            <div class="config-group"><label>Range</label><div class="input-pair"><input type="number" id="fLow" value="1"><span>-</span><input type="number" id="fHigh" value="12"></div></div>
+            <div class="config-group"><label>Reach</label><div class="input-pair"><input type="number" id="fReach" value="4"><span>/</span><input type="number" id="sReach" value="2"></div></div>
+            <div class="config-group"><label>Secs</label><div class="input-pair"><input type="number" id="sessionTime" value="60"></div></div>
+            <div class="degree-container"><div class="circle-grid" id="chip-container"></div></div>
+        </div>
 
-		<button class="start-btn" onclick="startQuiz()">START TRAINING SESSION</button>
+        <button class="start-btn" onclick="startQuiz()">START TRAINING SESSION</button>
 
-		<div class="fretboard-container">
-			<div class="fretboard">
-				<div class="marker-overlay" id="marker-overlay"></div>
-				<div id="strings-container"></div>
-			</div>
-		</div>
+        <div class="fretboard-container">
+            <div class="fretboard">
+                <div class="marker-overlay" id="marker-overlay"></div>
+                <div id="strings-container" style="display:contents"></div>
+            </div>
+        </div>
 
-		<div class="answer-grid" id="answer-grid"></div>
-	</div>
+        <div class="answer-grid" id="answer-grid"></div>
+    </div>
 
-	<script>
-		const stringOffsets = [24, 19, 15, 10, 5, 0];
-		const degrees = [{
-			n: "1",
-			s: 0
-		}, {
-			n: "b2",
-			s: 1
-		}, {
-			n: "2",
-			s: 2
-		}, {
-			n: "b3",
-			s: 3
-		}, {
-			n: "3",
-			s: 4
-		}, {
-			n: "4",
-			s: 5
-		}, {
-			n: "b5",
-			s: 6
-		}, {
-			n: "5",
-			s: 7
-		}, {
-			n: "b6",
-			s: 8
-		}, {
-			n: "6",
-			s: 9
-		}, {
-			n: "b7",
-			s: 10
-		}, {
-			n: "7",
-			s: 11
-		}];
-		let activeDegrees = [0, 4, 7],
-			isPlaying = false,
-			targetInterval = 0,
-			timerRef;
-		const audio = new(window.AudioContext || window.webkitAudioContext)();
+    <script>
+        const stringOffsets = [24, 19, 15, 10, 5, 0];
+        const degrees = [{n:"1",s:0},{n:"b2",s:1},{n:"2",s:2},{n:"b3",s:3},{n:"3",s:4},{n:"4",s:5},{n:"b5",s:6},{n:"5",s:7},{n:"b6",s:8},{n:"6",s:9},{n:"b7",s:10},{n:"7",s:11}];
+        let activeDegrees = [0, 4, 7], isPlaying = false, targetInterval = 0, timerRef;
+        const audio = new(window.AudioContext || window.webkitAudioContext)();
 
-		function saveSettings() {
-			const settings = {
-				fLow: document.getElementById('fLow').value,
-				fHigh: document.getElementById('fHigh').value,
-				fReach: document.getElementById('fReach').value,
-				sReach: document.getElementById('sReach').value,
-				sessionTime: document.getElementById('sessionTime').value,
-				activeDegrees: activeDegrees
-			};
-			localStorage.setItem('fretboardSettings', JSON.stringify(settings));
-		}
+        function init() {
+            const overlay = document.getElementById('marker-overlay');
+            overlay.innerHTML = '';
+            for (let f = 0; f < 16; f++) {
+                const col = document.createElement('div');
+                col.className = 'marker-col';
+                if ([3, 5, 7, 9, 15].includes(f)) col.classList.add('has-dot');
+                if (f === 12) col.classList.add('has-double');
+                col.innerHTML = '<div class="dot dot-1"></div><div class="dot dot-2"></div>';
+                overlay.appendChild(col);
+            }
+            const container = document.getElementById('strings-container');
+            container.innerHTML = '';
+            for (let s = 0; s < 6; s++) {
+                const row = document.createElement('div');
+                row.className = 'string-row';
+                for (let f = 0; f < 16; f++) {
+                    row.innerHTML += `<div class="fret-cell"><div class="note" id="n-${s}-${f}"></div></div>`;
+                }
+                container.appendChild(row);
+            }
+            const chips = document.getElementById('chip-container');
+            chips.innerHTML = '';
+            degrees.forEach((d, i) => {
+                const c = document.createElement('div');
+                c.className = `circle-btn ${activeDegrees.includes(i)?'active':''}`;
+                c.innerText = d.n;
+                c.onclick = () => {
+                    if (activeDegrees.includes(i)) {
+                        if (activeDegrees.length > 1) activeDegrees = activeDegrees.filter(x => x !== i);
+                    } else { activeDegrees.push(i); }
+                    c.classList.toggle('active', activeDegrees.includes(i));
+                    updateAnswerGrid();
+                };
+                chips.appendChild(c);
+            });
+            updateAnswerGrid();
+        }
 
-		function loadSettings() {
-			const saved = localStorage.getItem('fretboardSettings');
-			if (saved) {
-				const s = JSON.parse(saved);
-				document.getElementById('fLow').value = s.fLow || 1;
-				document.getElementById('fHigh').value = s.fHigh || 12;
-				document.getElementById('fReach').value = s.fReach || 4;
-				document.getElementById('sReach').value = s.sReach || 2;
-				document.getElementById('sessionTime').value = s.sessionTime || 60;
-				document.getElementById('timer').innerText = s.sessionTime || 60;
-				activeDegrees = s.activeDegrees || [0, 4, 7];
-			}
-		}
+        function updateAnswerGrid() {
+            const grid = document.getElementById('answer-grid');
+            grid.innerHTML = '';
+            [...activeDegrees].sort((a, b) => a - b).forEach(idx => {
+                const btn = document.createElement('div');
+                btn.className = 'ans-btn';
+                btn.innerText = degrees[idx].n;
+                btn.onclick = () => check(degrees[idx].s);
+                grid.appendChild(btn);
+            });
+        }
 
-		function init() {
-			loadSettings();
+        function check(val) {
+            if (!isPlaying) return;
+            if (val === targetInterval) {
+                beep(700, 'sine');
+                toast("Correct!", "#00ffa3");
+                next();
+            } else {
+                beep(150, 'square');
+                toast("Incorrect", "#ff4d4d");
+            }
+        }
 
-			const overlay = document.getElementById('marker-overlay');
-			overlay.innerHTML = '';
-			for (let f = 0; f < 16; f++) {
-				const col = document.createElement('div');
-				col.className = 'marker-col';
-				if ([3, 5, 7, 9, 15].includes(f)) col.classList.add('has-dot');
-				if (f === 12) col.classList.add('has-double');
-				col.innerHTML = '<div class="dot dot-1"></div><div class="dot dot-2"></div>';
-				overlay.appendChild(col);
-			}
+        function beep(f, t) {
+            const o = audio.createOscillator(), g = audio.createGain();
+            o.type = t; o.frequency.value = f;
+            g.gain.setValueAtTime(0.08, audio.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, audio.currentTime + 0.3);
+            o.connect(g); g.connect(audio.destination);
+            o.start(); o.stop(audio.currentTime + 0.3);
+        }
 
-			const container = document.getElementById('strings-container');
-			container.innerHTML = '';
-			for (let s = 0; s < 6; s++) {
-				const row = document.createElement('div');
-				row.className = 'string-row';
-				for (let f = 0; f < 16; f++) {
-					row.innerHTML += `<div class="fret-cell"><div class="note" id="n-${s}-${f}"></div></div>`;
-				}
-				container.appendChild(row);
-			}
+        function toast(m, c) {
+            const t = document.getElementById('toast');
+            t.innerText = m; t.style.background = c; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 800);
+        }
 
-			const chips = document.getElementById('chip-container');
-			chips.innerHTML = '';
-			degrees.forEach((d, i) => {
-				const c = document.createElement('div');
-				c.className = `circle-btn ${activeDegrees.includes(i)?'active':''}`;
-				c.innerText = d.n;
-				c.onclick = () => {
-					if (activeDegrees.includes(i)) {
-						if (activeDegrees.length > 1) activeDegrees = activeDegrees.filter(x => x !== i);
-					} else {
-						activeDegrees.push(i);
-					}
-					c.classList.toggle('active', activeDegrees.includes(i));
-					saveSettings();
-					updateAnswerGrid();
-				};
-				chips.appendChild(c);
-			});
-			updateAnswerGrid();
-		}
+        function startQuiz() {
+            if (activeDegrees.length === 0) return;
+            if (audio.state === 'suspended') audio.resume();
+            isPlaying = true;
+            let time = parseInt(document.getElementById('sessionTime').value);
+            document.getElementById('timer').innerText = time;
+            clearInterval(timerRef);
+            timerRef = setInterval(() => {
+                time--;
+                document.getElementById('timer').innerText = time;
+                if (time <= 0) { isPlaying = false; clearInterval(timerRef); toast("Session Complete!", "#3d5aff"); }
+            }, 1000);
+            next();
+        }
 
-		function updateAnswerGrid() {
-			const grid = document.getElementById('answer-grid');
-			grid.innerHTML = '';
-			[...activeDegrees].sort((a, b) => a - b).forEach(idx => {
-				const btn = document.createElement('div');
-				btn.className = 'ans-btn';
-				btn.innerText = degrees[idx].n;
-				btn.onclick = () => check(degrees[idx].s);
-				grid.appendChild(btn);
-			});
-		}
+        function next() {
+            document.querySelectorAll('.note').forEach(n => { n.classList.remove('visible', 'root', 'target'); n.innerText = ""; });
+            const low = Math.max(0, parseInt(document.getElementById('fLow').value));
+            const high = Math.min(15, parseInt(document.getElementById('fHigh').value));
+            const fR = parseInt(document.getElementById('fReach').value);
+            const sR = parseInt(document.getElementById('sReach').value);
+            const rs = Math.floor(Math.random() * 6);
+            const rf = Math.floor(Math.random() * (high - low + 1)) + low;
+            targetInterval = degrees[activeDegrees[Math.floor(Math.random() * activeDegrees.length)]].s;
+            let found = false, ts, tf, tries = 0;
+            while (!found && tries < 600) {
+                tries++;
+                ts = Math.max(0, Math.min(5, rs + (Math.floor(Math.random() * (sR * 2 + 1)) - sR)));
+                tf = rf + (Math.floor(Math.random() * (fR * 2 + 1)) - fR);
+                if (ts === rs && tf === rf) continue;
+                if (tf < low || tf > high) continue; 
+                const diff = (stringOffsets[ts] + tf) - (stringOffsets[rs] + rf);
+                const d = ((diff % 12) + 12) % 12;
+                if (d === targetInterval) found = true;
+            }
+            if (!found) return next();
+            const rEl = document.getElementById(`n-${rs}-${rf}`);
+            const tEl = document.getElementById(`n-${ts}-${tf}`);
+            rEl.classList.add('visible', 'root'); rEl.innerText = "R";
+            tEl.classList.add('visible', 'target'); tEl.innerText = "?";
+        }
 
-		function check(val) {
-			if (!isPlaying) return;
-			if (val === targetInterval) {
-				beep(700, 'sine');
-				toast("Correct!", "#00ffa3");
-				next();
-			} else {
-				beep(150, 'square');
-				toast("Incorrect", "#ff4d4d");
-			}
-		}
-
-		function beep(f, t) {
-			const o = audio.createOscillator(),
-				g = audio.createGain();
-			o.type = t;
-			o.frequency.value = f;
-			g.gain.setValueAtTime(0.08, audio.currentTime);
-			g.gain.exponentialRampToValueAtTime(0.01, audio.currentTime + 0.3);
-			o.connect(g);
-			g.connect(audio.destination);
-			o.start();
-			o.stop(audio.currentTime + 0.3);
-		}
-
-		function toast(m, c) {
-			const t = document.getElementById('toast');
-			t.innerText = m;
-			t.style.background = c;
-			t.classList.add('show');
-			setTimeout(() => t.classList.remove('show'), 800);
-		}
-
-		function startQuiz() {
-			if (activeDegrees.length === 0) return;
-			if (audio.state === 'suspended') audio.resume();
-			isPlaying = true;
-			let time = parseInt(document.getElementById('sessionTime').value);
-			document.getElementById('timer').innerText = time;
-			clearInterval(timerRef);
-			timerRef = setInterval(() => {
-				time--;
-				document.getElementById('timer').innerText = time;
-				if (time <= 0) {
-					isPlaying = false;
-					clearInterval(timerRef);
-					toast("Session Complete!", "#3d5aff");
-				}
-			}, 1000);
-			next();
-		}
-
-		function next() {
-			document.querySelectorAll('.note').forEach(n => {
-				n.classList.remove('visible', 'root', 'target');
-				n.innerText = "";
-			});
-
-			const low = Math.max(0, parseInt(document.getElementById('fLow').value));
-			const high = Math.min(15, parseInt(document.getElementById('fHigh').value));
-			const fR = parseInt(document.getElementById('fReach').value);
-			const sR = parseInt(document.getElementById('sReach').value);
-
-			// Root must spawn within the user's range
-			const rs = Math.floor(Math.random() * 6);
-			const rf = Math.floor(Math.random() * (high - low + 1)) + low;
-
-			targetInterval = degrees[activeDegrees[Math.floor(Math.random() * activeDegrees.length)]].s;
-
-			let found = false,
-				ts, tf, tries = 0;
-			while (!found && tries < 600) {
-				tries++;
-				ts = Math.max(0, Math.min(5, rs + (Math.floor(Math.random() * (sR * 2 + 1)) - sR)));
-				tf = rf + (Math.floor(Math.random() * (fR * 2 + 1)) - fR);
-
-				if (ts === rs && tf === rf) continue;
-
-				// CRITICAL FIX: Target note must also strictly be within the user's range
-				if (tf < low || tf > high) continue;
-				if (tf < 0 || tf > 15) continue;
-
-				const diff = (stringOffsets[ts] + tf) - (stringOffsets[rs] + rf);
-				const d = ((diff % 12) + 12) % 12;
-				if (d === targetInterval) found = true;
-			}
-
-			// If the range is too small to find that interval, try a different interval
-			if (!found) return next();
-
-			const rEl = document.getElementById(`n-${rs}-${rf}`);
-			const tEl = document.getElementById(`n-${ts}-${tf}`);
-
-			rEl.classList.add('visible', 'root');
-			rEl.innerText = "R";
-			tEl.classList.add('visible', 'target');
-			tEl.innerText = "?";
-		}
-
-		init();
-	</script>
+        init();
+    </script>
 </body>
-
 </html>
