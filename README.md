@@ -6,7 +6,6 @@
 
 
 ![alt text](Demo.png)
-
 ---
 
 ## 🎯 The Philosophy
