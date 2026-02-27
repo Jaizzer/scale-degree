@@ -1,6 +1,6 @@
 # Fretboard Master Pro 
 
-**[👉 Try It](https://jaizzer.github.io/scale-degree/)**
+**[Try It Now](https://jaizzer.github.io/scale-degree/)**
 
 **Fretboard Master Pro** is a high-performance, minimalist web application designed for guitarists to master interval recognition, fretboard visualization, and harmonic geometry. By generating random "Root-to-Target" relationships based on custom constraints, it bridges the gap between theoretical knowledge and physical execution.
 
